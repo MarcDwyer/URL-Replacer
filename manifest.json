@@ -6,19 +6,20 @@
   "content_scripts": [
     {
       "matches": ["https://www.reddit.com/*", "https://www.reddit.com/*/**"],
-      "js": ["./src/content/index.ts"],
+      "js": ["./src/content.ts"],
       "run_at": "document_start"
     }
   ],
   "background": {
-    "service_worker": "./src/background/index.ts"
+    "service_worker": "./src/background.ts"
   },
   "permissions": [
     "webRequest",
     "webRequestBlocking",
     "webNavigation",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback"
+    "declarativeNetRequestFeedback",
+    "storage"
   ],
   "host_permissions": ["https://www.reddit.com/*"]
 }

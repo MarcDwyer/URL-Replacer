@@ -7,3 +7,21 @@ label {
   display: flex;
   flex-direction: column;
 }
+
+button {
+  margin-top: 5px;
+}
+
+.list-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 5px;
+}
+
+.clear-btn-container {
+  width: 100%;
+  display: flex;
+}
+.clear-btn {
+  margin: auto 0 auto auto;
+}
