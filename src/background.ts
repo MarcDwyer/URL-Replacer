@@ -4,22 +4,26 @@ import { replaceSubstring } from "./shared/utils/replaceString";
 import { getStorage } from "./shared/utils/storage";
 function setListeners(urlsMap: URLSMapType) {
   chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    let url = details.url;
-
-    for (const [replacerURL, { replaceThis, withThis }] of Object.entries(
-      urlsMap,
-    )) {
+    const url = details.url;
+    console.log({ url });
+    const replacerInfo = Object.entries(urlsMap);
+    console.log({ replacerInfo });
+    for (const [replacerURL, { replaceThis, withThis }] of replacerInfo) {
       if (url.startsWith(replacerURL)) {
-        url = replaceSubstring(url, replaceThis, withThis);
+        const newURL = replaceSubstring(url, replaceThis, withThis);
+        chrome.tabs.update(details.tabId, { url: newURL }).catch(console.error);
       }
     }
-    chrome.tabs.update(details.tabId, { url });
   });
 }
 
 async function main() {
-  const urlsMap = await getStorage<URLSMapType>(StorageKeys.URLSMap);
-  setListeners(urlsMap);
+  try {
+    const urlsMap = await getStorage<URLSMapType>(StorageKeys.URLSMap);
+    setListeners(urlsMap);
+  } catch (e) {
+    console.error(e);
+  }
 
   chrome.runtime.onMessage.addListener(async (message) => {
     if (message.type === DataTypes.UpdateURLS) {
