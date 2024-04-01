@@ -10,17 +10,36 @@ import {
 import { ReplacerInfo, URLSMapType } from "../shared/storageTypes";
 import { getStorage, setStorage } from "../shared/utils/storage";
 import "./index.css";
-import { updateAllTabs, updateAllTabsExceptCurr } from "../shared/utils/tabs";
+import { updateAllTabs } from "../shared/utils/tabs";
+
+type Tab = chrome.tabs.Tab;
+
+function getCurrentTab(): Promise<Tab> {
+  return new Promise((res) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentTab = tabs[0];
+      console.log("Current tab:", currentTab.url);
+      res(currentTab);
+    });
+  });
+}
 
 function Popup() {
   const [replacerInfo, dispatch] = useReducer(
     ReplacerInfoReducer,
-    InitialialReplacerInfoState,
+    InitialialReplacerInfoState
   );
+
+  const [currentTab, setCurrentTab] = useState<Tab | null>(null);
+
   const [urls, setURLs] = useState<Record<string, ReplacerInfo> | null>(null);
+
   async function handleURLSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const { url, replaceThis, withThis } = replacerInfo;
+    if (!currentTab || (currentTab && !currentTab.url)) return;
+    const { replaceThis, withThis } = replacerInfo;
+
+    const url = currentTab.url as string;
 
     const updatedURLS = { ...urls };
     Object.assign(updatedURLS, {
@@ -30,16 +49,16 @@ function Popup() {
     setStorage(StorageKeys.URLSMap, updatedURLS).then(() => {
       setURLs(updatedURLS);
       dispatch({ type: RESET_REPLACER_INFO, payload: {} });
-      updateAllTabsExceptCurr({
-        type: DataTypes.UpdateURLS,
-        data: updatedURLS,
+      chrome.runtime.sendMessage({
+        message: { type: DataTypes.UpdateURLS, data: updatedURLS },
       });
+      chrome.tabs.reload(currentTab.id ?? -1);
     });
   }
 
   function handleInputChange(
     keyOfChange: keyof typeof InitialialReplacerInfoState,
-    change: string,
+    change: string
   ) {
     dispatch({
       type: SET_REPLACER_INFO,
@@ -50,25 +69,27 @@ function Popup() {
   function clear() {
     setStorage(StorageKeys.URLSMap, {}).then(() => {
       updateAllTabs({ type: DataTypes.UpdateURLS, data: {} });
+      chrome.runtime.sendMessage({
+        message: { type: DataTypes.UpdateURLS, data: {} },
+      });
+      setURLs({});
     });
   }
-
   useEffect(() => {
     async function getInitialURLsMap() {
       const initialURLsMap = await getStorage<URLSMapType>(StorageKeys.URLSMap);
       setURLs(initialURLsMap);
     }
     getInitialURLsMap();
-    chrome.runtime.onMessage.addListener((message) => {
-      console.log({ message });
-      switch (message.type) {
-        case DataTypes.UpdateURLS:
-          setURLs(message.data as URLSMapType);
-      }
-    });
   }, [setURLs]);
 
+  useEffect(() => {
+    getCurrentTab().then((tab) => setCurrentTab(tab));
+  }, []);
+
   const urlList = useMemo(() => Array.from(Object.entries(urls ?? {})), [urls]);
+
+  console.log({ currentTab });
 
   return (
     <div className="App" style={{ height: 300, width: 300 }}>
@@ -79,14 +100,7 @@ function Popup() {
           </button>
         </div>
         <form className="container" onSubmit={handleURLSubmit}>
-          <label>
-            Replace text in URLS that start with:
-            <input
-              onChange={(e) => handleInputChange("url", e.target.value)}
-              value={replacerInfo.url}
-              placeholder="https://"
-            />
-          </label>
+          {currentTab && <label>Replace the text of {currentTab.url}</label>}
           <label>
             The text to replace
             <input
@@ -123,5 +137,5 @@ function Popup() {
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <Popup />,
+  <Popup />
 );

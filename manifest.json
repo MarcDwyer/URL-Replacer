@@ -19,7 +19,7 @@
     "webNavigation",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
-    "storage"
-  ],
-  "host_permissions": ["https://www.reddit.com/*"]
+    "storage",
+    "tabs"
+  ]
 }
