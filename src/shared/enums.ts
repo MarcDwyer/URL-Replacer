@@ -1,6 +1,7 @@
 export enum DataTypes {
-  AddURLS= "AddURLS",
+  AddURLS = "AddURLS",
   UpdateURLS = "UpdatesURLS",
+  ClearURLS = "clearurls",
 }
 
 export enum StorageKeys {
